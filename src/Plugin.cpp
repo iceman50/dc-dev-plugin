@@ -43,6 +43,8 @@ using dcapi::Util;
 const string showCommand = "Show the dialog";
 const string hideCommand = "Hide the dialog";
 
+const ProtocolType UDP = static_cast<ProtocolType>(3);
+
 Plugin::Plugin() {
 }
 
@@ -123,12 +125,12 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 }
 
 bool Plugin::onHubDataIn(HubDataPtr hHub, char* message) {
-	gui.write(true, false, hHub->ip, hHub->port, "Hub <" + string(hHub->url) + ">", message);
+	gui.write(true, false, hHub->protocol, hHub->ip, hHub->port, "Hub <" + string(hHub->url) + ">", message);
 	return false;
 }
 
 bool Plugin::onHubDataOut(HubDataPtr hHub, char* message) {
-	gui.write(true, true, hHub->ip, hHub->port, "Hub <" + string(hHub->url) + ">", message);
+	gui.write(true, true, hHub->protocol, hHub->ip, hHub->port, "Hub <" + string(hHub->url) + ">", message);
 	return false;
 }
 
@@ -140,22 +142,22 @@ namespace { string userInfo(ConnectionDataPtr hConn) {
 } }
 
 bool Plugin::onClientDataIn(ConnectionDataPtr hConn, char* message) {
-	gui.write(false, false, hConn->ip, hConn->port, "User " + userInfo(hConn), message);
+	gui.write(false, false, hConn->protocol, hConn->ip, hConn->port, "User " + userInfo(hConn), message);
 	return false;
 }
 
 bool Plugin::onClientDataOut(ConnectionDataPtr hConn, char* message) {
-	gui.write(false, true, hConn->ip, hConn->port, "User " + userInfo(hConn), message);
+	gui.write(false, true, hConn->protocol, hConn->ip, hConn->port, "User " + userInfo(hConn), message);
 	return false;
 }
 
 bool Plugin::onUDPDataIn(UDPDataPtr data, char* message) {
-	gui.write(false, false, data->ip, data->port, "UDP", message);
+	gui.write(false, false, UDP, data->ip, data->port, "UDP", message);
 	return false;
 }
 
 bool Plugin::onUDPDataOut(UDPDataPtr data, char* message) {
-	gui.write(false, true, data->ip, data->port, "UDP", message);
+	gui.write(false, true, UDP, data->ip, data->port, "UDP", message);
 	return false;
 }
 
@@ -177,8 +179,10 @@ bool Plugin::onChatCommand(HubDataPtr hub, CommandDataPtr cmd) {
 bool Plugin::onUserRemoved(UserDataPtr hUser) {
 	//Todo when I can get the users IP
 //	gui.cleanFilterW(...);
+	return false;
 }
 
 bool Plugin::onHubRemoved(HubDataPtr hHub) {
 	gui.cleanFilterW(hHub->ip);
+	return false;
 }

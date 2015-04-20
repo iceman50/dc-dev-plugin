@@ -125,12 +125,13 @@ void GUI::create() {
 		std::vector<Column> columns;
 		columns.emplace_back(_T("#"), 50);
 		columns.emplace_back(_T("Dir"), 50);
+		columns.emplace_back(_T("Protocol"), 60);
 		columns.emplace_back(_T("IP"), 100);
 		columns.emplace_back(_T("Port"), 50);
 		columns.emplace_back(_T("Peer info"), 200);
 		columns.emplace_back(_T("Message"));
 		table->setColumns(columns);
-		table->onSized([this](const SizedEvent& e) { table->setColumnWidth(5, e.size.x - 50 - 50 - 100 - 50 - 200 - 20); });
+		table->onSized([this](const SizedEvent& e) { table->setColumnWidth(6, e.size.x - 50 - 50 - 60 - 100 - 50 - 200 - 20); });
 
 		table->onContextMenu([this](const ScreenCoordinate& pt) -> bool {
 			auto menu = window->addChild(Menu::Seed());
@@ -252,10 +253,11 @@ void GUI::create() {
 	window->setTimer([this]() -> bool { timer(); return true; }, 500);
 }
 
-void GUI::write(bool hubOrUser, bool sending, string ip, decltype(ConnectionData().port) port, string peer, string message) {
+void GUI::write(bool hubOrUser, bool sending, ProtocolType proto, string ip, decltype(ConnectionData().port) port, string peer, string message) {
 	auto msg = new Message();
 	msg->hubOrUser = hubOrUser;
 	msg->sending = sending;
+	msg->protocol = returnProto(proto);
 	msg->ip = move(ip);
 	msg->port = port;
 	msg->peer = move(peer);
@@ -302,13 +304,14 @@ void GUI::timer() {
 		}
 
 		if(f) {
-			fprintf(f, "%u [%s] %s:%u (%s): %s\n", counter, message.sending ? "Out" : "In",
-				message.ip.c_str(), message.port, message.peer.c_str(), message.message.c_str());
+			fprintf(f, "%u [%s] [%s] %s:%u (%s): %s\n", counter, message.sending ? "Out" : "In",
+				message.protocol.c_str(), message.ip.c_str(), message.port, message.peer.c_str(), message.message.c_str());
 		}
 
 		auto item = new Item;
 		item->index = Util::toT(boost::lexical_cast<string>(counter));
 		item->dir = message.sending ? _T("Out") : _T("In");
+		item->protocol = Util::toT(message.protocol);
 		item->ip = move(ip);
 		item->port = Util::toT(boost::lexical_cast<string>(message.port));
 		item->peer = Util::toT(message.peer);
@@ -317,6 +320,7 @@ void GUI::timer() {
 		std::vector<tstring> row;
 		row.push_back(item->index);
 		row.push_back(item->dir);
+		row.push_back(item->protocol);
 		row.push_back(item->ip);
 		row.push_back(item->port);
 		row.push_back(item->peer);
@@ -352,7 +356,7 @@ void GUI::copy() {
 		if(data) {
 			auto& item = *reinterpret_cast<Item*>(data);
 			if(!str.empty()) { str += _T("\r\n"); }
-			str += item.index + _T(" [") + item.dir + _T("] ") + item.ip + _T(":") + item.port + _T(" (") + item.peer + _T("): ") + item.message;
+			str += item.index + _T(" [") + item.dir + _T("] ") + _T(" [") + item.protocol + _T("] ") + item.ip + _T(":") + item.port + _T(" (") + item.peer + _T("): ") + item.message;
 		}
 	}
 
@@ -394,8 +398,18 @@ void GUI::remove() {
 	}
 }
 
-void GUI::cleanFilterW(const string ip) {	
-	if(filter.find(Util::toT(ip)) != filter.end) {
+void GUI::cleanFilterW(string ip) {
+	if (filter.find(Util::toT(ip)) != filter.end()) {
 		filterW->erase(filterW->findString(Util::toT(ip)));
+	}
+}
+
+string GUI::returnProto(ProtocolType protocol) {
+	switch (protocol) {
+		case PROTOCOL_ADC: return "ADC"; break;
+		case PROTOCOL_NMDC: return "NMDC"; break;
+		case PROTOCOL_DHT: return "DHT"; break; // Reserved
+		case 3: return "UDP"; break; //Specifically for UDP data since there is no ProtocolType for UDP
+		default: return "Unknown";
 	}
 }

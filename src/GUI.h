@@ -35,11 +35,11 @@ public:
 	~GUI();
 
 	void create();
-	void write(bool hubOrUser, bool sending, string ip, decltype(ConnectionData().port) port, string peer, string message);
+	void write(bool hubOrUser, bool sending, ProtocolType proto, string ip, decltype(ConnectionData().port) port, string peer, string message);
 	void close();
 
 	// Temp solution to try and keep FilterW from having entries of offline hubs/users
-	void cleanFilterW(const string ip);
+	void cleanFilterW(string ip);
 
 	static bool unloading;
 
@@ -51,7 +51,7 @@ private:
 	void remove();
 
 	// store the messages to be displayed here; process them with a timer.
-	struct Message { bool hubOrUser; bool sending; string ip; decltype(ConnectionData().port) port; string peer; string message; };
+	struct Message { bool hubOrUser; bool sending; string protocol; string ip; decltype(ConnectionData().port) port; string peer; string message; };
 	boost::lockfree::queue<Message*> messages;
 
 	uint16_t counter;
@@ -67,11 +67,14 @@ private:
 	struct Item {
 		tstring index;
 		tstring dir;
+		tstring protocol;
 		tstring ip;
 		tstring port;
 		tstring peer;
 		tstring message;
 	};
+
+	string returnProto(ProtocolType proto);
 };
 
 #endif
