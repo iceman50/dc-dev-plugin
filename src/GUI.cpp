@@ -393,3 +393,9 @@ void GUI::remove() {
 		}
 	}
 }
+
+void GUI::cleanFilterW(const string ip) {	
+	if(filter.find(Util::toT(ip)) != filter.end) {
+		filterW->erase(filterW->findString(Util::toT(ip)));
+	}
+}

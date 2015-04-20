@@ -38,6 +38,9 @@ public:
 	void write(bool hubOrUser, bool sending, string ip, decltype(ConnectionData().port) port, string peer, string message);
 	void close();
 
+	// Temp solution to try and keep FilterW from having entries of offline hubs/users
+	void cleanFilterW(const string ip);
+
 	static bool unloading;
 
 private:

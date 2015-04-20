@@ -40,6 +40,9 @@ private:
 	bool onUDPDataIn(UDPDataPtr data, char* message);
 	bool onUDPDataOut(UDPDataPtr data, char* message);
 	bool onChatCommand(HubDataPtr hub, CommandDataPtr cmd);
+	
+	bool onUserRemoved(UserDataPtr hUser);
+	bool onHubRemoved(HubDataPtr hHub);
 
 	GUI gui;
 

@@ -112,6 +112,9 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 	Hooks::Network::onUDPDataOut([this](UDPDataPtr data, char* message, bool&) { return onUDPDataOut(data, message); });
 	Hooks::UI::onChatCommand([this](HubDataPtr hHub, CommandDataPtr cmd, bool&) { return onChatCommand(hHub, cmd); });
 
+	Hooks::Users::onOffline([this](UserDataPtr hUser, bool&) { return onUserRemoved(hUser); });
+	Hooks::Hubs::onOffline([this](HubDataPtr hHub, bool&) { return onHubRemoved(hHub); });
+
 	Hooks::UI::onCreated([this](dcptr_t, bool&) -> bool { if(Config::getBoolConfig("Dialog")) { gui.create(); } return false; });
 	UI::addCommand(showCommand, [this] { gui.create(); }, string());
 	UI::addCommand(hideCommand, [this] { gui.close(); }, string());
@@ -169,4 +172,13 @@ bool Plugin::onChatCommand(HubDataPtr hub, CommandDataPtr cmd) {
 	}
 
 	return false;
+}
+
+bool Plugin::onUserRemoved(UserDataPtr hUser) {
+	//Todo when I can get the users IP
+//	gui.cleanFilterW(...);
+}
+
+bool Plugin::onHubRemoved(HubDataPtr hHub) {
+	gui.cleanFilterW(hHub->ip);
 }
