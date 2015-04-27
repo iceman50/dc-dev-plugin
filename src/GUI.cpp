@@ -435,24 +435,21 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	}
 
 	if ((data.nmcd.dwDrawStage & CDDS_ITEMPREPAINT) == CDDS_ITEMPREPAINT && data.dwItemType == LVCDI_ITEM && data.nmcd.lItemlParam) {
-//		data.clrTextBk = Config::getInt64Config("bgColor");
-//		data.clrText = Config::getInt64Config("fgColor");
 
 		RECT r;
 		ListView_GetItemRect(table->handle(), item, &r, LVIR_BOUNDS);
 
-		table->setColor(RGB(0, 0, 0), RGB(255, 255, 255));
-
 		Item* it = (Item*)data.nmcd.lItemlParam;
 
 		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-			data.clrText = RGB(255, 255, 255); // Black text
-			data.clrTextBk = RGB(0, 0, 0); // White BG
-
+			data.clrTextBk = RGB(0, 0, 0);
 
 			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
-				data.clrText = Config::getInt64Config("ProtoADCColor");
-				data.clrTextBk = RGB(0, 0, 0);
+				data.clrText = RGB(255, 51, 51);
+			} else if (it->protocol == _T("NMDC")) {
+				data.clrText = RGB(102, 0, 204);
+			} else if (it->protocol == _T("UDP")) {
+				data.clrText = RGB(0, 255, 28);
 			}
 
 		}
