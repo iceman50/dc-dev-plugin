@@ -43,8 +43,6 @@ using dcapi::Util;
 const string showCommand = "Show the dialog";
 const string hideCommand = "Hide the dialog";
 
-const ProtocolType UDP = static_cast<ProtocolType>(3);
-
 Plugin::Plugin() {
 }
 
@@ -97,6 +95,15 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 	if(install) {
 		// This only executes when the plugin has been installed for the first time.
 		Config::setConfig("Dialog", true);
+		Config::setConfig("FilterByUser", false);
+		Config::setConfig("FilterByHub", false);
+		Config::setConfig("FilterByProtocol", false);
+		Config::setConfig("EnableLogging", false);
+		Config::setConfig("BgColor", (int64_t)RGB(255, 255, 255));
+		Config::setConfig("FgColor", (int64_t)RGB(0, 0, 0));
+		Config::setConfig("ProtoADCColor", (int64_t)RGB(128, 0, 130));
+		Config::setConfig("ProtoNMDCColor", (int64_t)RGB(128, 100, 28));
+		Config::setConfig("ProtoUDPColor", (int64_t)RGB(0, 64, 180));
 
 		Logger::log("The dev plugin has been installed; check the plugins menu and the /raw chat command.");
 	}
@@ -152,12 +159,12 @@ bool Plugin::onClientDataOut(ConnectionDataPtr hConn, char* message) {
 }
 
 bool Plugin::onUDPDataIn(UDPDataPtr data, char* message) {
-	gui.write(false, false, UDP, data->ip, data->port, "UDP", message);
+	gui.write(false, false, (ProtocolType)3, data->ip, data->port, "UDP", message);
 	return false;
 }
 
 bool Plugin::onUDPDataOut(UDPDataPtr data, char* message) {
-	gui.write(false, true, UDP, data->ip, data->port, "UDP", message);
+	gui.write(false, true, (ProtocolType)3, data->ip, data->port, "UDP", message);
 	return false;
 }
 
@@ -176,7 +183,7 @@ bool Plugin::onChatCommand(HubDataPtr hub, CommandDataPtr cmd) {
 	return false;
 }
 
-bool Plugin::onUserRemoved(UserDataPtr hUser) {
+bool Plugin::onUserRemoved(UserDataPtr hConn) {
 	//Todo when I can get the users IP
 //	gui.cleanFilterW(...);
 	return false;

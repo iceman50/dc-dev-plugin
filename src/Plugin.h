@@ -41,7 +41,7 @@ private:
 	bool onUDPDataOut(UDPDataPtr data, char* message);
 	bool onChatCommand(HubDataPtr hub, CommandDataPtr cmd);
 	
-	bool onUserRemoved(UserDataPtr hUser);
+	bool onUserRemoved(UserDataPtr hConn);
 	bool onHubRemoved(HubDataPtr hHub);
 
 	GUI gui;

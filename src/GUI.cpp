@@ -26,23 +26,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include <dwt/Application.h>
-#include <dwt/Clipboard.h>
-#include <dwt/DWTException.h>
-#include <dwt/Events.h>
-#include <dwt/util/HoldRedraw.h>
-#include <dwt/widgets/Button.h>
-#include <dwt/widgets/CheckBox.h>
-#include <dwt/widgets/ComboBox.h>
-#include <dwt/widgets/Grid.h>
-#include <dwt/widgets/GroupBox.h>
-#include <dwt/widgets/Menu.h>
-#include <dwt/widgets/MessageBox.h>
-#include <dwt/widgets/SaveDialog.h>
-#include <dwt/widgets/Table.h>
-#include <dwt/widgets/TextBox.h>
-#include <dwt/widgets/Window.h>
-
 #define noFilter _T("0 - No filtering")
 
 // dwt defines another tstring...
@@ -60,12 +43,25 @@ WindowPtr window;
 TablePtr table;
 ComboBoxPtr filterW;
 
+/*
+ComboBoxPtr userFilter, hubFilter, SearchFilter, protoFilter
+CheckBoxPtr eUserFilter, eHubFilter, eSearchFilter, eProtoFilter, eFileLogging, eColorFormat
+GroupBoxPtr searchGroup, filterGroup, miscGroup, colorGroup
+*/
+
 GUI::GUI() :
 	messages(1024),
 	counter(0),
 	scroll(true),
 	hubMessages(true),
-	userMessages(true)
+	userMessages(true)/* hubMessages and userMessages will be superceded by eUserFilter & eHubFilter
+	,eUserFilter(true),
+	eHubFilter(true),
+	eSearchFilter(true),
+	eProtoFilter(true),
+	eFileLogging(false)				  
+					  
+					  */
 {
 }
 
@@ -84,6 +80,18 @@ void GUI::create() {
 	}
 
 	Config::setConfig("Dialog", true);
+	/*
+	auto setBoolCfg = [&] (string setting, CheckBoxPtr enable) {
+		if(enable) {
+			Config::setConfig(setting, enable);
+	}
+
+	setBoolCfg("", eUserFilter);
+	setCfg("", eHubFilter);
+	setCfg("", eSearchFilter);
+	setCfg("", eProtoFilter);
+	setCfg("", eFileLogging);
+	*/
 
 	Application::init();
 
@@ -143,6 +151,8 @@ void GUI::create() {
 			menu->open(pt.x() == -1 || pt.y() == -1 ? table->getContextMenuPos() : pt);
 			return true;
 		});
+
+		table->onCustomDraw([this](NMLVCUSTOMDRAW& data) { return GUI::handleCustomDraw(data); });
 	}
 
 	{
@@ -283,6 +293,8 @@ void GUI::timer() {
 	while(messages.pop(messagePtr)) {
 		auto& message = *messagePtr.get();
 
+
+		//TODO Handle filtering here ... if(message != isFiltered(message)) { continue; }
 		if(!(message.hubOrUser ? hubMessages : userMessages)) {
 			continue;
 		}
@@ -409,7 +421,51 @@ string GUI::returnProto(ProtocolType protocol) {
 		case PROTOCOL_ADC: return "ADC"; break;
 		case PROTOCOL_NMDC: return "NMDC"; break;
 		case PROTOCOL_DHT: return "DHT"; break; // Reserved
-		case 3: return "UDP"; break; //Specifically for UDP data since there is no ProtocolType for UDP
+		case 3/* UDP */: return "UDP"; break; //Specifically for UDP data since there is no ProtocolType for UDP
 		default: return "Unknown";
 	}
+}
+
+LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
+	auto item = static_cast<int>(data.nmcd.dwItemSpec);
+	auto column = data.iSubItem;
+
+	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
+		return CDRF_NOTIFYITEMDRAW;
+	}
+
+	if ((data.nmcd.dwDrawStage & CDDS_ITEMPREPAINT) == CDDS_ITEMPREPAINT && data.dwItemType == LVCDI_ITEM && data.nmcd.lItemlParam) {
+//		data.clrTextBk = Config::getInt64Config("bgColor");
+//		data.clrText = Config::getInt64Config("fgColor");
+
+		RECT r;
+		ListView_GetItemRect(table->handle(), item, &r, LVIR_BOUNDS);
+
+		table->setColor(RGB(0, 0, 0), RGB(255, 255, 255));
+
+		Item* it = (Item*)data.nmcd.lItemlParam;
+
+		if (data.nmcd.hdr.hwndFrom == table->handle()) {
+			data.clrText = RGB(255, 255, 255); // Black text
+			data.clrTextBk = RGB(0, 0, 0); // White BG
+
+
+			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
+				data.clrText = Config::getInt64Config("ProtoADCColor");
+				data.clrTextBk = RGB(0, 0, 0);
+			}
+
+		}
+		
+		/*
+		HFONT font = nullptr;
+		auto ret = data.nmcd.lItemlParam;
+		if (ret == CDRF_NEWFONT && font) {
+			::SelectObject(data.nmcd.hdc, font);
+		}
+		return ret;
+		*/
+	}
+
+	return CDRF_DODEFAULT;
 }
