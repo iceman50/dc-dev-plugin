@@ -22,6 +22,22 @@
 #include <pluginsdk/Config.h>
 #include <pluginsdk/Util.h>
 
+#include <dwt/Clipboard.h>
+#include <dwt/DWTException.h>
+#include <dwt/Events.h>
+#include <dwt/util/HoldRedraw.h>
+#include <dwt/widgets/Button.h>
+#include <dwt/widgets/CheckBox.h>
+#include <dwt/widgets/ComboBox.h>
+#include <dwt/widgets/Grid.h>
+#include <dwt/widgets/GroupBox.h>
+#include <dwt/widgets/Menu.h>
+#include <dwt/widgets/MessageBox.h>
+#include <dwt/widgets/SaveDialog.h>
+#include <dwt/widgets/Table.h>
+#include <dwt/widgets/TextBox.h>
+#include <dwt/widgets/Window.h>
+
 #include <memory>
 
 #include <boost/lexical_cast.hpp>
@@ -148,7 +164,12 @@ void GUI::create() {
 			menu->appendItem(_T("Remove selected messages"), [=] { remove(); }, nullptr, hasSel);
 			menu->appendSeparator();
 			menu->appendItem(_T("Select all"), [] { table->selectAll(); }, nullptr, !table->empty());
+
+			menu->appendSeparator();
+			menu->appendItem(_T("Open protocol documentation"), [=] { openDoc(); }, nullptr, hasSel);
+
 			menu->open(pt.x() == -1 || pt.y() == -1 ? table->getContextMenuPos() : pt);
+			
 			return true;
 		});
 
@@ -442,7 +463,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 		Item* it = (Item*)data.nmcd.lItemlParam;
 
 		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-			data.clrTextBk = RGB(0, 0, 0);
+//			data.clrTextBk = RGB(0, 0, 0);
 
 			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
 				data.clrText = RGB(255, 51, 51);
@@ -465,4 +486,32 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	}
 
 	return CDRF_DODEFAULT;
+}
+
+void GUI::openDoc() {
+	int i = -1;
+	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) {
+		auto data = table->getData(i);
+		if (data) {
+			const string& ADC_Doc = "http://adc.sourceforge.net/ADC.html";
+			const string& NMDC_Doc = "http://nmdc.sourceforge.net/NMDC.html";
+			const string& UDP_Doc = "https://en.wikipedia.org/wiki/User_Datagram_Protocol";
+
+			auto& item = *reinterpret_cast<Item*>(data);
+			auto isAdc = item.protocol == Util::toT("ADC");
+			auto isNmdc = item.protocol == Util::toT("NMDC");
+
+			auto openLink = [](const string& doc) {
+				::ShellExecute(0, 0, Util::toT(doc).c_str(), 0, 0, SW_SHOW);
+			};
+
+			if (isAdc) {
+				openLink(ADC_Doc);
+			} else if (isNmdc) {
+				openLink(NMDC_Doc);
+			} else {
+				openLink(UDP_Doc);
+			}
+		}
+	}
 }

@@ -25,21 +25,6 @@
 #include <boost/regex.hpp>
 
 #include <dwt/Application.h>
-#include <dwt/Clipboard.h>
-#include <dwt/DWTException.h>
-#include <dwt/Events.h>
-#include <dwt/util/HoldRedraw.h>
-#include <dwt/widgets/Button.h>
-#include <dwt/widgets/CheckBox.h>
-#include <dwt/widgets/ComboBox.h>
-#include <dwt/widgets/Grid.h>
-#include <dwt/widgets/GroupBox.h>
-#include <dwt/widgets/Menu.h>
-#include <dwt/widgets/MessageBox.h>
-#include <dwt/widgets/SaveDialog.h>
-#include <dwt/widgets/Table.h>
-#include <dwt/widgets/TextBox.h>
-#include <dwt/widgets/Window.h>
 
 using std::move;
 using std::string;
@@ -99,7 +84,7 @@ private:
 
 	string returnProto(ProtocolType proto);
 	LRESULT handleCustomDraw(NMLVCUSTOMDRAW& data);
-	string getHostname(string ip);
+	void openDoc();
 };
 
 #endif

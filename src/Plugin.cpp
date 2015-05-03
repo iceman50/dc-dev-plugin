@@ -183,7 +183,7 @@ bool Plugin::onChatCommand(HubDataPtr hub, CommandDataPtr cmd) {
 	return false;
 }
 
-bool Plugin::onUserRemoved(UserDataPtr hConn) {
+bool Plugin::onUserRemoved(UserDataPtr hUser) {
 	//Todo when I can get the users IP
 //	gui.cleanFilterW(...);
 	return false;
