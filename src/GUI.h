@@ -30,6 +30,17 @@ using std::move;
 using std::string;
 using std::unordered_set;
 
+// objects associated to each list item as LPARAMs.
+struct Item {
+	tstring index;
+	tstring dir;
+	tstring protocol;
+	tstring ip;
+	tstring port;
+	tstring peer;
+	tstring message;
+};
+
 class GUI
 {
 public:
@@ -71,20 +82,16 @@ private:
 	boost::regex regex;
 	string log;
 
-	// objects associated to each list litem as LPARAMs.
-	struct Item {
-		tstring index;
-		tstring dir;
-		tstring protocol;
-		tstring ip;
-		tstring port;
-		tstring peer;
-		tstring message;
-	};
-
 	string returnProto(ProtocolType proto);
 	LRESULT handleCustomDraw(NMLVCUSTOMDRAW& data);
 	void openDoc();
+};
+
+class Filter
+{
+public:
+	Filter(Item& item);
+	~Filter();
 };
 
 #endif

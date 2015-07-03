@@ -315,7 +315,10 @@ void GUI::timer() {
 		auto& message = *messagePtr.get();
 
 
-		//TODO Handle filtering here ... if(message != isFiltered(message)) { continue; }
+		//TODO Handle filtering here
+		/*
+		DFilter filt(message);
+		*/
 		if(!(message.hubOrUser ? hubMessages : userMessages)) {
 			continue;
 		}
@@ -449,7 +452,7 @@ string GUI::returnProto(ProtocolType protocol) {
 
 LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	auto item = static_cast<int>(data.nmcd.dwItemSpec);
-	auto column = data.iSubItem;
+//	auto column = data.iSubItem; // Potential per-subItem coloring
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -457,13 +460,10 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 
 	if ((data.nmcd.dwDrawStage & CDDS_ITEMPREPAINT) == CDDS_ITEMPREPAINT && data.dwItemType == LVCDI_ITEM && data.nmcd.lItemlParam) {
 
-		RECT r;
-		ListView_GetItemRect(table->handle(), item, &r, LVIR_BOUNDS);
+		auto rect = table->getRect(item, LVIR_BOUNDS);
 
 		Item* it = (Item*)data.nmcd.lItemlParam;
-
 		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-//			data.clrTextBk = RGB(0, 0, 0);
 
 			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
 				data.clrText = RGB(255, 51, 51);
