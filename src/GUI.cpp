@@ -38,9 +38,11 @@
 #include <dwt/widgets/TextBox.h>
 #include <dwt/widgets/Window.h>
 
+#include <chrono>
+#include <ctime>
 #include <memory>
 
-#include <boost/lexical_cast.hpp>
+#include <boost/boost/lexical_cast.hpp>
 
 #define noFilter _T("0 - No filtering")
 
@@ -147,15 +149,16 @@ void GUI::create() {
 		table = grid->addChild(seed);
 
 		std::vector<Column> columns;
+		columns.emplace_back(_T("Timestamp"), 120);
 		columns.emplace_back(_T("#"), 50);
 		columns.emplace_back(_T("Dir"), 50);
 		columns.emplace_back(_T("Protocol"), 60);
 		columns.emplace_back(_T("IP"), 100);
 		columns.emplace_back(_T("Port"), 50);
 		columns.emplace_back(_T("Peer info"), 200);
-		columns.emplace_back(_T("Message"));
+		columns.emplace_back(_T("Message"), 520);
 		table->setColumns(columns);
-		table->onSized([this](const SizedEvent& e) { table->setColumnWidth(6, e.size.x - 50 - 50 - 60 - 100 - 50 - 200 - 20); });
+		table->onSized([this](const SizedEvent& e) { table->setColumnWidth(8, e.size.x - 50 - 50 - 60 - 100 - 50 - 75 - 20); });
 
 		table->onContextMenu([this](const ScreenCoordinate& pt) -> bool {
 			auto menu = window->addChild(Menu::Seed());
@@ -249,7 +252,7 @@ void GUI::create() {
 	}
 
 	{
-		auto cur = grid->addChild(Grid::Seed(1, 5));
+		auto cur = grid->addChild(Grid::Seed(1, 6));
 		cur->column(4).mode = GridInfo::FILL;
 		cur->column(4).align = GridInfo::BOTTOM_RIGHT;
 		cur->setSpacing(30);
@@ -270,11 +273,25 @@ void GUI::create() {
 		auto onTop = cur->addChild(CheckBox::Seed(_T("Keep this window on top")));
 		onTop->onClicked([onTop] { window->setZOrder(onTop->getChecked() ? HWND_TOPMOST : HWND_NOTOPMOST); });
 
+		{
+			auto cur2 = cur->addChild(GroupBox::Seed(_T("Table coloring")))->addChild(Grid::Seed(1, 3));
+
+			bs.caption = _T("Background Color");
+			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("BgColor"), COLOR_BG); });
+
+			bs.caption = _T("NMDC Color");
+			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("NMDCColor"), COLOR_NMDC); });
+
+			bs.caption = _T("ADC Color");
+			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("ADCColor"), COLOR_ADC); });
+		}
+
 		bs.caption = _T("Close");
 		bs.style |= BS_DEFPUSHBUTTON;
 		bs.padding.x += 20;
 		cur->addChild(bs)->onClicked([] { window->close(true); });
 	}
+
 
 	grid->resize(window->getClientSize());
 	window->onSized([grid](const SizedEvent& e) { grid->resize(e.size); });
@@ -339,12 +356,18 @@ void GUI::timer() {
 			}
 		}
 
+		char timestamp [50] {};
+		std::time_t time = std::time(nullptr);
+		std::strftime(timestamp, 30, "[%D - %H:%M:%S]", std::localtime(&time));
+		auto timeStr = string(timestamp);
+
 		if(f) {
-			fprintf(f, "%u [%s] [%s] %s:%u (%s): %s\n", counter, message.sending ? "Out" : "In",
+			fprintf(f, "%s %u [%s] [%s] %s:%u (%s): %s\n", timeStr.c_str(), counter, message.sending ? "Out" : "In",
 				message.protocol.c_str(), message.ip.c_str(), message.port, message.peer.c_str(), message.message.c_str());
 		}
 
 		auto item = new Item;
+		item->timestamp = Util::toT(timeStr);
 		item->index = Util::toT(boost::lexical_cast<string>(counter));
 		item->dir = message.sending ? _T("Out") : _T("In");
 		item->protocol = Util::toT(message.protocol);
@@ -354,6 +377,7 @@ void GUI::timer() {
 		item->message = Util::toT(message.message);
 
 		std::vector<tstring> row;
+		row.push_back(item->timestamp);
 		row.push_back(item->index);
 		row.push_back(item->dir);
 		row.push_back(item->protocol);
@@ -392,7 +416,7 @@ void GUI::copy() {
 		if(data) {
 			auto& item = *reinterpret_cast<Item*>(data);
 			if(!str.empty()) { str += _T("\r\n"); }
-			str += item.index + _T(" [") + item.dir + _T("] ") + _T(" [") + item.protocol + _T("] ") + item.ip + _T(":") + item.port + _T(" (") + item.peer + _T("): ") + item.message;
+			str += item.timestamp + item.index + _T(" [") + item.dir + _T("] ") + _T(" [") + item.protocol + _T("] ") + item.ip + _T(":") + item.port + _T(" (") + item.peer + _T("): ") + item.message;
 		}
 	}
 
@@ -437,6 +461,7 @@ void GUI::remove() {
 void GUI::cleanFilterW(string ip) {
 	if (filter.find(Util::toT(ip)) != filter.end()) {
 		filterW->erase(filterW->findString(Util::toT(ip)));
+		initFilter();
 	}
 }
 
@@ -445,7 +470,6 @@ string GUI::returnProto(ProtocolType protocol) {
 		case PROTOCOL_ADC: return "ADC"; break;
 		case PROTOCOL_NMDC: return "NMDC"; break;
 		case PROTOCOL_DHT: return "DHT"; break; // Reserved
-		case 3/* UDP */: return "UDP"; break; //Specifically for UDP data since there is no ProtocolType for UDP
 		default: return "Unknown";
 	}
 }
@@ -453,6 +477,9 @@ string GUI::returnProto(ProtocolType protocol) {
 LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	auto item = static_cast<int>(data.nmcd.dwItemSpec);
 //	auto column = data.iSubItem; // Potential per-subItem coloring
+	COLORREF adcClr = Config::getIntConfig("ADCColor");
+	COLORREF nmdcClr = Config::getIntConfig("NMDCColor");
+	COLORREF bkgClr = Config::getIntConfig("BgColor");
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -464,25 +491,14 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 
 		Item* it = (Item*)data.nmcd.lItemlParam;
 		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-
 			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
-				data.clrText = RGB(255, 51, 51);
+				data.clrText = adcClr;
 			} else if (it->protocol == _T("NMDC")) {
-				data.clrText = RGB(102, 0, 204);
-			} else if (it->protocol == _T("UDP")) {
-				data.clrText = RGB(0, 255, 28);
+				data.clrText = nmdcClr;
 			}
-
+			data.clrTextBk = bkgClr; // Have this changed per-item? (...)
+//			table->setColor(RGB(0,0,0), bkgClr);
 		}
-		
-		/*
-		HFONT font = nullptr;
-		auto ret = data.nmcd.lItemlParam;
-		if (ret == CDRF_NEWFONT && font) {
-			::SelectObject(data.nmcd.hdc, font);
-		}
-		return ret;
-		*/
 	}
 
 	return CDRF_DODEFAULT;
@@ -490,7 +506,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 
 void GUI::openDoc() {
 	int i = -1;
-	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) {
+	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) { //TODO Only allow one selection to be processed
 		auto data = table->getData(i);
 		if (data) {
 			const string& ADC_Doc = "http://adc.sourceforge.net/ADC.html";
@@ -514,4 +530,21 @@ void GUI::openDoc() {
 			}
 		}
 	}
+}
+
+void GUI::colorDialog(COLORREF color, COLOR_FLAGS colorFlag) {
+	ColorDialog::ColorParams params(color);
+	if(ColorDialog(window).open(params)) {
+		switch (colorFlag) {
+			case COLOR_ADC:
+				Config::setConfig("ADCColor", static_cast<int>(params.getColor()));
+				break;
+			case COLOR_NMDC:
+				Config::setConfig("NMDCColor", static_cast<int>(params.getColor()));
+				break;
+			case COLOR_BG:
+				Config::setConfig("BgColor", static_cast<int>(params.getColor()));
+		}
+	}
+	table->Control::redraw(true); // Let's make sure we redraw the table
 }

@@ -25,7 +25,7 @@
 #define PLUGIN_GUID "{22b95072-afdd-4e36-82b4-c796fb61f41a}"
 
 /* Name of the plugin */
-#define PLUGIN_NAME "Dev plugin"
+#define PLUGIN_NAME "Dev plugin - BDC++ Mod"
 
 /* Author of the plugin */
 #define PLUGIN_AUTHOR "DC++"
@@ -34,7 +34,7 @@
 #define PLUGIN_DESC "Plugin for developers: network traffic analysis, ability to send custom commands."
 
 /* Version of the plugin (note: not API version) */
-#define PLUGIN_VERSION 1.0
+#define PLUGIN_VERSION 1.1
 
 /* Plugin website, set to "N/A" if none */
 #define PLUGIN_WEB "http://dcplusplus.sourceforge.net/"

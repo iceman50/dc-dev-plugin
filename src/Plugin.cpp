@@ -95,15 +95,10 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 	if(install) {
 		// This only executes when the plugin has been installed for the first time.
 		Config::setConfig("Dialog", true);
-		Config::setConfig("FilterByUser", false);
-		Config::setConfig("FilterByHub", false);
-		Config::setConfig("FilterByProtocol", false);
-		Config::setConfig("EnableLogging", false);
-		Config::setConfig("BgColor", (int64_t)RGB(255, 255, 255));
-		Config::setConfig("FgColor", (int64_t)RGB(0, 0, 0));
-		Config::setConfig("ProtoADCColor", (int64_t)RGB(128, 0, 130));
-		Config::setConfig("ProtoNMDCColor", (int64_t)RGB(128, 100, 28));
-		Config::setConfig("ProtoUDPColor", (int64_t)RGB(0, 64, 180));
+		Config::setConfig("BgColor", (int)RGB(255, 255, 255));
+		Config::setConfig("FgColor", (int)RGB(0, 0, 0));
+		Config::setConfig("ADCColor", (int)RGB(128, 0, 130));
+		Config::setConfig("NMDCColor", (int)RGB(128, 100, 28));
 
 		Logger::log("The dev plugin has been installed; check the plugins menu and the /raw chat command.");
 	}

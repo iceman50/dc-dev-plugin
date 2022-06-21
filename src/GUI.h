@@ -25,6 +25,7 @@
 #include <boost/regex.hpp>
 
 #include <dwt/Application.h>
+#include <dwt/widgets/ColorDialog.h>
 
 using std::move;
 using std::string;
@@ -32,6 +33,7 @@ using std::unordered_set;
 
 // objects associated to each list item as LPARAMs.
 struct Item {
+	tstring timestamp;
 	tstring index;
 	tstring dir;
 	tstring protocol;
@@ -69,6 +71,12 @@ private:
 	void clear();
 	void remove();
 
+	enum COLOR_FLAGS {
+		COLOR_ADC = 0x01,
+		COLOR_NMDC = 0x02,
+		COLOR_BG = 0x04
+	};
+
 	// store the messages to be displayed here; process them with a timer.
 	struct Message { bool hubOrUser; bool sending; string protocol; string ip; decltype(ConnectionData().port) port; string peer; string message; };
 	boost::lockfree::queue<Message*> messages;
@@ -85,6 +93,9 @@ private:
 	string returnProto(ProtocolType proto);
 	LRESULT handleCustomDraw(NMLVCUSTOMDRAW& data);
 	void openDoc();
+
+	dwt::ColorDialog colorDlg;
+	void colorDialog(COLORREF color, COLOR_FLAGS colorFlag);
 };
 
 class Filter
