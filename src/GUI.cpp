@@ -479,7 +479,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 //	auto column = data.iSubItem; // Potential per-subItem coloring
 	COLORREF adcClr = Config::getIntConfig("ADCColor");
 	COLORREF nmdcClr = Config::getIntConfig("NMDCColor");
-	COLORREF bkgClr = Config::getIntConfig("BgColor");
+//	COLORREF bkgClr = Config::getIntConfig("BgColor");
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -496,7 +496,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 			} else if (it->protocol == _T("NMDC")) {
 				data.clrText = nmdcClr;
 			}
-			data.clrTextBk = bkgClr; // Have this changed per-item? (...)
+//			data.clrTextBk = bkgClr; // Have this changed per-item? (...)
 //			table->setColor(RGB(0,0,0), bkgClr);
 		}
 	}
@@ -544,6 +544,7 @@ void GUI::colorDialog(COLORREF color, COLOR_FLAGS colorFlag) {
 				break;
 			case COLOR_BG:
 				Config::setConfig("BgColor", static_cast<int>(params.getColor()));
+				table->setColor(RGB(0, 0, 0), params.getColor()); // TODO FIXME
 		}
 	}
 	table->Control::redraw(true); // Let's make sure we redraw the table
