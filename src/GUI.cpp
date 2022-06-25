@@ -528,6 +528,8 @@ void GUI::openDoc() {
 			} else {
 				openLink(UDP_Doc);
 			}
+
+			break;
 		}
 	}
 }
