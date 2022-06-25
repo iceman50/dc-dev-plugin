@@ -98,11 +98,4 @@ private:
 	void colorDialog(COLORREF color, COLOR_FLAGS colorFlag);
 };
 
-class Filter
-{
-public:
-	Filter(Item& item);
-	~Filter();
-};
-
 #endif

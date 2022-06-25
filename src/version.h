@@ -25,7 +25,7 @@
 #define PLUGIN_GUID "{22b95072-afdd-4e36-82b4-c796fb61f41a}"
 
 /* Name of the plugin */
-#define PLUGIN_NAME "Dev plugin - BDC++ Mod"
+#define PLUGIN_NAME "Dev plugin"
 
 /* Author of the plugin */
 #define PLUGIN_AUTHOR "DC++"

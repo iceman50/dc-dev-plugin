@@ -61,25 +61,12 @@ WindowPtr window;
 TablePtr table;
 ComboBoxPtr filterW;
 
-/*
-ComboBoxPtr userFilter, hubFilter, SearchFilter, protoFilter
-CheckBoxPtr eUserFilter, eHubFilter, eSearchFilter, eProtoFilter, eFileLogging, eColorFormat
-GroupBoxPtr searchGroup, filterGroup, miscGroup, colorGroup
-*/
-
 GUI::GUI() :
 	messages(1024),
 	counter(0),
 	scroll(true),
 	hubMessages(true),
-	userMessages(true)/* hubMessages and userMessages will be superceded by eUserFilter & eHubFilter
-	,eUserFilter(true),
-	eHubFilter(true),
-	eSearchFilter(true),
-	eProtoFilter(true),
-	eFileLogging(false)				  
-					  
-					  */
+	userMessages(true)
 {
 }
 
@@ -98,18 +85,6 @@ void GUI::create() {
 	}
 
 	Config::setConfig("Dialog", true);
-	/*
-	auto setBoolCfg = [&] (string setting, CheckBoxPtr enable) {
-		if(enable) {
-			Config::setConfig(setting, enable);
-	}
-
-	setBoolCfg("", eUserFilter);
-	setCfg("", eHubFilter);
-	setCfg("", eSearchFilter);
-	setCfg("", eProtoFilter);
-	setCfg("", eFileLogging);
-	*/
 
 	Application::init();
 
@@ -331,11 +306,6 @@ void GUI::timer() {
 	while(messages.pop(messagePtr)) {
 		auto& message = *messagePtr.get();
 
-
-		//TODO Handle filtering here
-		/*
-		DFilter filt(message);
-		*/
 		if(!(message.hubOrUser ? hubMessages : userMessages)) {
 			continue;
 		}
@@ -476,10 +446,8 @@ string GUI::returnProto(ProtocolType protocol) {
 
 LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	auto item = static_cast<int>(data.nmcd.dwItemSpec);
-//	auto column = data.iSubItem; // Potential per-subItem coloring
 	COLORREF adcClr = Config::getIntConfig("ADCColor");
 	COLORREF nmdcClr = Config::getIntConfig("NMDCColor");
-//	COLORREF bkgClr = Config::getIntConfig("BgColor");
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -491,13 +459,11 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 
 		Item* it = (Item*)data.nmcd.lItemlParam;
 		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-			if (/*(eColorFormat) &&*/ it->protocol == _T("ADC")) {
+			if (it->protocol == _T("ADC")) {
 				data.clrText = adcClr;
 			} else if (it->protocol == _T("NMDC")) {
 				data.clrText = nmdcClr;
 			}
-//			data.clrTextBk = bkgClr; // Have this changed per-item? (...)
-//			table->setColor(RGB(0,0,0), bkgClr);
 		}
 	}
 

@@ -96,7 +96,6 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 		// This only executes when the plugin has been installed for the first time.
 		Config::setConfig("Dialog", true);
 		Config::setConfig("BgColor", (int)RGB(255, 255, 255));
-		Config::setConfig("FgColor", (int)RGB(0, 0, 0));
 		Config::setConfig("ADCColor", (int)RGB(128, 0, 130));
 		Config::setConfig("NMDCColor", (int)RGB(128, 100, 28));
 
