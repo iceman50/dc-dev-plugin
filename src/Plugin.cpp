@@ -96,8 +96,9 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 		// This only executes when the plugin has been installed for the first time.
 		Config::setConfig("Dialog", true);
 		Config::setConfig("BgColor", (int)RGB(255, 255, 255));
-		Config::setConfig("ADCColor", (int)RGB(128, 0, 130));
-		Config::setConfig("NMDCColor", (int)RGB(128, 100, 28));
+		Config::setConfig("ADCColor", (int)RGB(0, 0, 0));
+		Config::setConfig("NMDCColor", (int)RGB(0, 0, 0));
+		Config::setConfig("UDPColor", (int)RGB(0, 0, 0));
 
 		Logger::log("The dev plugin has been installed; check the plugins menu and the /raw chat command.");
 	}
@@ -153,12 +154,18 @@ bool Plugin::onClientDataOut(ConnectionDataPtr hConn, char* message) {
 }
 
 bool Plugin::onUDPDataIn(UDPDataPtr data, char* message) {
-	gui.write(false, false, (ProtocolType)3, data->ip, data->port, "UDP", message);
+	string proto;
+	if(message[0] == '$') { proto = "NMDC Search"; }
+	else { proto = "ADC Search"; }
+	gui.write(false, false, (ProtocolType)3, data->ip, data->port, proto, message);
 	return false;
 }
 
 bool Plugin::onUDPDataOut(UDPDataPtr data, char* message) {
-	gui.write(false, true, (ProtocolType)3, data->ip, data->port, "UDP", message);
+	string proto;
+	if(message[0] == '$') { proto = "NMDC Search"; }
+	else { proto = "ADC Search"; }
+	gui.write(false, true, (ProtocolType)3, data->ip, data->port, proto, message);
 	return false;
 }
 

@@ -74,7 +74,8 @@ private:
 	enum COLOR_FLAGS {
 		COLOR_ADC = 0x01,
 		COLOR_NMDC = 0x02,
-		COLOR_BG = 0x04
+		COLOR_UDP = 0x04,
+		COLOR_BG = 0x08
 	};
 
 	// store the messages to be displayed here; process them with a timer.

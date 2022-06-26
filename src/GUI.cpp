@@ -249,10 +249,13 @@ void GUI::create() {
 		onTop->onClicked([onTop] { window->setZOrder(onTop->getChecked() ? HWND_TOPMOST : HWND_NOTOPMOST); });
 
 		{
-			auto cur2 = cur->addChild(GroupBox::Seed(_T("Table coloring")))->addChild(Grid::Seed(1, 3));
+			auto cur2 = cur->addChild(GroupBox::Seed(_T("Colors")))->addChild(Grid::Seed(1, 4));
 
 			bs.caption = _T("Background Color");
 			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("BgColor"), COLOR_BG); });
+
+			bs.caption = _T("UDP Color");
+			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("UDPColor"), COLOR_UDP); });
 
 			bs.caption = _T("NMDC Color");
 			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("NMDCColor"), COLOR_NMDC); });
@@ -274,6 +277,7 @@ void GUI::create() {
 	table->setFocus();
 
 	window->setTimer([this]() -> bool { timer(); return true; }, 500);
+	table->setColor(RGB(0, 0, 0), Config::getIntConfig("BgColor"));
 }
 
 void GUI::write(bool hubOrUser, bool sending, ProtocolType proto, string ip, decltype(ConnectionData().port) port, string peer, string message) {
@@ -440,6 +444,7 @@ string GUI::returnProto(ProtocolType protocol) {
 		case PROTOCOL_ADC: return "ADC"; break;
 		case PROTOCOL_NMDC: return "NMDC"; break;
 		case PROTOCOL_DHT: return "DHT"; break; // Reserved
+		case 3 /* UDP */ : return "UDP"; break;
 		default: return "Unknown";
 	}
 }
@@ -448,6 +453,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	auto item = static_cast<int>(data.nmcd.dwItemSpec);
 	COLORREF adcClr = Config::getIntConfig("ADCColor");
 	COLORREF nmdcClr = Config::getIntConfig("NMDCColor");
+	COLORREF udpClr = Config::getIntConfig("UDPColor");
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -463,6 +469,8 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 				data.clrText = adcClr;
 			} else if (it->protocol == _T("NMDC")) {
 				data.clrText = nmdcClr;
+			} else if (it->protocol == _T("UDP")) {
+				data.clrText = udpClr;
 			}
 		}
 	}
@@ -510,9 +518,12 @@ void GUI::colorDialog(COLORREF color, COLOR_FLAGS colorFlag) {
 			case COLOR_NMDC:
 				Config::setConfig("NMDCColor", static_cast<int>(params.getColor()));
 				break;
+			case COLOR_UDP:
+				Config::setConfig("UDPColor", static_cast<int>(params.getColor()));
+				break;
 			case COLOR_BG:
 				Config::setConfig("BgColor", static_cast<int>(params.getColor()));
-				table->setColor(RGB(0, 0, 0), params.getColor()); // TODO FIXME
+				table->setColor(RGB(0, 0, 0), params.getColor());
 		}
 	}
 	table->Control::redraw(true); // Let's make sure we redraw the table
