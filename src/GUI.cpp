@@ -230,7 +230,7 @@ void GUI::create() {
 		auto cur = grid->addChild(Grid::Seed(1, 6));
 		cur->column(4).mode = GridInfo::FILL;
 		cur->column(4).align = GridInfo::BOTTOM_RIGHT;
-		cur->setSpacing(30);
+		cur->setSpacing(20);
 
 		Button::Seed bs;
 		bs.padding.x += 20;
