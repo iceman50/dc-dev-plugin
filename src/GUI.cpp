@@ -20,6 +20,7 @@
 #include "GUI.h"
 
 #include <pluginsdk/Config.h>
+#include <pluginsdk/Logger.h>
 #include <pluginsdk/Util.h>
 
 #include <dwt/Clipboard.h>
@@ -38,7 +39,6 @@
 #include <dwt/widgets/TextBox.h>
 #include <dwt/widgets/Window.h>
 
-#include <chrono>
 #include <ctime>
 #include <memory>
 
@@ -51,6 +51,7 @@ typedef tstring _tstring;
 #define tstring _tstring
 
 using dcapi::Config;
+using dcapi::Logger;
 using dcapi::Util;
 
 using namespace dwt;
@@ -82,6 +83,13 @@ void GUI::create() {
 	if(window) {
 		window->setFocus();
 		return;
+	}
+
+	if(Config::getBoolConfig("FirstRun")) {
+		Config::setConfig("FirstRun", false);
+		//Debug - force the BgColor to White
+		//TODO FIXME check setConfig on load in Plugin.cpp
+		Config::setConfig("BgColor", static_cast<int>(RGB(255, 255, 255)));
 	}
 
 	Config::setConfig("Dialog", true);
@@ -275,16 +283,28 @@ void GUI::create() {
 	window->onSized([grid](const SizedEvent& e) { grid->resize(e.size); });
 
 	table->setFocus();
+	// Ensure we run setColor every time we open the dialog to maintain background color
+	table->setColor(RGB(0, 0, 0), Config::getIntConfig("BgColor"));
 
 	window->setTimer([this]() -> bool { timer(); return true; }, 500);
-	table->setColor(RGB(0, 0, 0), Config::getIntConfig("BgColor"));
 }
 
 void GUI::write(bool hubOrUser, bool sending, ProtocolType proto, string ip, decltype(ConnectionData().port) port, string peer, string message) {
+
+	auto pStr = [&](ProtocolType p) -> string {
+		switch (p) {
+			case PROTOCOL_ADC: return "ADC"; break;
+			case PROTOCOL_NMDC: return "NMDC"; break;
+			case PROTOCOL_DHT: return "DHT"; break; // Reserved
+			case PROTOCOL_UDP: return "UDP"; break; // use our own definition for UDP
+			default: return "Unknown";
+		}
+	};
+
 	auto msg = new Message();
 	msg->hubOrUser = hubOrUser;
 	msg->sending = sending;
-	msg->protocol = returnProto(proto);
+	msg->protocol = pStr(proto);
 	msg->ip = move(ip);
 	msg->port = port;
 	msg->peer = move(peer);
@@ -381,6 +401,11 @@ void GUI::initFilter() {
 	filterW->setSelected(filterW->addValue(noFilter));
 }
 
+void GUI::initFilter(tstring& opt) {
+	filterW->addValue(noFilter);
+	filterW->setSelected(filterW->addValue(opt));
+}
+
 void GUI::copy() {
 	tstring str;
 
@@ -414,9 +439,16 @@ void GUI::clear() {
 		delete item;
 	}
 
+	auto temp = filterW->getText();
 	filterW->clear();
 	filter.clear();
 	filterSel.clear();
+
+	if (!temp.empty() && temp != noFilter) {
+		initFilter(temp);
+		return;
+	}
+
 	initFilter();
 }
 
@@ -439,21 +471,11 @@ void GUI::cleanFilterW(string ip) {
 	}
 }
 
-string GUI::returnProto(ProtocolType protocol) {
-	switch (protocol) {
-		case PROTOCOL_ADC: return "ADC"; break;
-		case PROTOCOL_NMDC: return "NMDC"; break;
-		case PROTOCOL_DHT: return "DHT"; break; // Reserved
-		case 3 /* UDP */ : return "UDP"; break;
-		default: return "Unknown";
-	}
-}
-
 LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 	auto item = static_cast<int>(data.nmcd.dwItemSpec);
-	COLORREF adcClr = Config::getIntConfig("ADCColor");
-	COLORREF nmdcClr = Config::getIntConfig("NMDCColor");
-	COLORREF udpClr = Config::getIntConfig("UDPColor");
+	COLORREF adcClr = static_cast<COLORREF>(Config::getIntConfig("ADCColor"));
+	COLORREF nmdcClr = static_cast<COLORREF>(Config::getIntConfig("NMDCColor"));
+	COLORREF udpClr = static_cast<COLORREF>(Config::getIntConfig("UDPColor"));
 
 	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
@@ -480,7 +502,7 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 
 void GUI::openDoc() {
 	int i = -1;
-	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) { //TODO Only allow one selection to be processed
+	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) {
 		auto data = table->getData(i);
 		if (data) {
 			const string& ADC_Doc = "http://adc.sourceforge.net/ADC.html";

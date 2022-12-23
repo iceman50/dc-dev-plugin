@@ -20,7 +20,7 @@ to this directory and zip them; rename that .zip to .dcext and you are done!
 
 <dcext>
 	<UUID>{22b95072-afdd-4e36-82b4-c796fb61f41a}</UUID>
-	<Name>Dev plugin - BDC++ Mod</Name>
+	<Name>Dev plugin</Name>
 	<Version>1.1</Version>
 	<ApiVersion>8</ApiVersion>
 	<Author>DC++</Author>

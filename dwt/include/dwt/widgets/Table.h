@@ -507,7 +507,6 @@ inline void Table::resort() {
 		if(sortType == SORT_CALLBACK) {
 			ListView_SortItems(handle(), &Table::compareFuncCallback, reinterpret_cast<LPARAM>(this));
 		} else {
-			// Wine 0.9.48 doesn't support this
 			ListView_SortItemsEx(handle(), &Table::compareFunc, reinterpret_cast< LPARAM >(this));
 		}
 	}

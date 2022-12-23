@@ -31,6 +31,8 @@ using std::move;
 using std::string;
 using std::unordered_set;
 
+constexpr ProtocolType PROTOCOL_UDP = static_cast<ProtocolType>(3);
+
 // objects associated to each list item as LPARAMs.
 struct Item {
 	tstring timestamp;
@@ -58,25 +60,20 @@ public:
 
 	static bool unloading;
 
-	enum FILTER_FLAGS {
-		F_USER = 1,
-		F_HUB = F_USER << 1,
-		F_PROTO = F_HUB << 1,
-	};
-
-private:
-	void timer();
-	void initFilter();
-	void copy();
-	void clear();
-	void remove();
-
 	enum COLOR_FLAGS {
 		COLOR_ADC = 0x01,
 		COLOR_NMDC = 0x02,
 		COLOR_UDP = 0x04,
 		COLOR_BG = 0x08
 	};
+
+private:
+	void timer();
+	void initFilter();
+	void initFilter(tstring& opt);
+	void copy();
+	void clear();
+	void remove();
 
 	// store the messages to be displayed here; process them with a timer.
 	struct Message { bool hubOrUser; bool sending; string protocol; string ip; decltype(ConnectionData().port) port; string peer; string message; };
@@ -91,7 +88,6 @@ private:
 	boost::regex regex;
 	string log;
 
-	string returnProto(ProtocolType proto);
 	LRESULT handleCustomDraw(NMLVCUSTOMDRAW& data);
 	void openDoc();
 
