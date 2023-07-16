@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2001-2013 Jacek Sieka, arnetheduck on gmail point com
+ * Copyright (C) 2001-2015 Jacek Sieka, arnetheduck on gmail point com
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,9 @@ extern "C" {
 #define DCINTF_DCPP_UI				"dcpp.ui.DCUI"				/* User interface */
 #define DCINTF_DCPP_UI_VER			1
 
+#define DCINTF_DCPP_DATAACCESSOR				"dcpp.dataaccessor.DCDataAccess"				/* Data access */
+#define DCINTF_DCPP_DATAACCESSOR_VER			1
+
 /* Hook GUID's for Hooks (events) system */
 #define HOOK_CHAT_IN				"dcpp.chat.onIncomingChat"		/* Incoming chat from hub (obj: HubData) */
 #define HOOK_CHAT_OUT				"dcpp.chat.onOutgoingChat"		/* Outgoing chat (obj: HubData) */
@@ -113,6 +116,10 @@ extern "C" {
 #define HOOK_UI_CHAT_DISPLAY		"dcpp.ui.onChatDisplay"			/* Chat messages before they are displayed in chat (obj: UserData; data: StringData) */
 #define HOOK_UI_CHAT_COMMAND		"dcpp.ui.onChatCommand"			/* Client side commands in hub chat (obj: HubData; data: CommandData) */
 #define HOOK_UI_CHAT_COMMAND_PM		"dcpp.ui.onChatCommandPM"		/* Client side commands in private chat (obj: UserData; data: CommandData) */
+
+#define HOOK_DATAACESSOR_HTTP_RESOURCE_NOTIFICATION		"dcpp.dataaccessor.onHTTPResourceNotification"		/* Notification that transfer has completed */
+#define HOOK_DATAACESSOR_HTTP_RESOURCE_NOTIFICATION_FAILED		"dcpp.dataaccessor.onHTTPResourceNotificationFailed"		/* Notification that transfer has failed */
+#define HOOK_DATAACESSOR_HTTP_RESOURCE_STREAM		"dcpp.dataaccessor.onHTTPResourceStream"		/* Notification that transfer has updated */
 
 /* Main hook events (returned by pluginInit) */
 typedef enum tagPluginState {
@@ -291,6 +298,11 @@ typedef struct tagDCInterface {
 	uint32_t apiVersion;
 } DCInterface, *DCInterfacePtr;
 
+typedef struct {
+		const void* pData;
+		uint64_t size;
+} DataArray, *DataArrayPtr;
+
 /* Core plugin system */
 typedef struct tagDCCore {
 	/* Core API version */
@@ -458,6 +470,19 @@ typedef struct DCUI {
 	void		(DCAPI *play_sound)					(const char* path);
 	void		(DCAPI *notify)						(const char* title, const char* message);
 } DCUI, *DCUIPtr;
+
+/* Data access */
+typedef struct DCDataAccess {
+	uint32_t apiVersion;
+
+	/* "uri" is the HTTP file path to grab.
+	"localPath" is the local file path to download to.
+	"localPath" may be NULL or empty to not download to a specific file. */
+	void		(DCAPI *get_http_resource)	(const char* uri, const char* localPath);
+
+	DataArrayPtr	(DCAPI *copy)					(const DataArrayPtr hItem);
+	void			(DCAPI *release)				(DataArrayPtr hCopy);
+} DCDataAcess, *DCDataAccessPtr;
 
 #ifdef __cplusplus
 }

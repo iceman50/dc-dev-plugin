@@ -97,6 +97,12 @@ public:
 		static void onChatCommandPM(function<bool (UserDataPtr, CommandDataPtr, bool&)> f);
 	};
 
+	struct DataAccessor {
+		static void onHTTPResourceNotification(function<bool(char*, bool&)> f);
+		static void onHTTPResourceNotificationFailed(function<bool(char*, bool&)> f);
+		static void onHTTPResourceStream(function<bool(char*, DataArrayPtr, bool&)> f);
+	};
+
 	static bool empty();
 	static void clear();
 	static void remove(const char* id);

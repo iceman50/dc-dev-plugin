@@ -142,6 +142,21 @@ void Hooks::UI::onChatCommandPM(function<bool (UserDataPtr, CommandDataPtr, bool
 		return f(reinterpret_cast<UserDataPtr>(pObject), reinterpret_cast<CommandDataPtr>(pData), bBreak); });
 }
 
+void Hooks::DataAccessor::onHTTPResourceNotification(function<bool(char*, bool&)> f) {
+	addEvent(HOOK_DATAACESSOR_HTTP_RESOURCE_NOTIFICATION, [f](dcptr_t pResource, dcptr_t, bool& bBreak) {
+		return f(reinterpret_cast<char*>(pResource), bBreak); });
+}
+void Hooks::DataAccessor::onHTTPResourceNotificationFailed(function<bool(char*, bool&)> f) {
+	addEvent(HOOK_DATAACESSOR_HTTP_RESOURCE_NOTIFICATION_FAILED, [f](dcptr_t pResource, dcptr_t, bool& bBreak) {
+		return f(reinterpret_cast<char*>(pResource), bBreak);
+			 });
+}
+void Hooks::DataAccessor::onHTTPResourceStream(function<bool(char*, DataArrayPtr, bool&)> f) {
+	addEvent(HOOK_DATAACESSOR_HTTP_RESOURCE_STREAM, [f](dcptr_t pResource, dcptr_t pData, bool& bBreak) {
+		return f(reinterpret_cast<char*>(pResource), reinterpret_cast<DataArrayPtr>(pData), bBreak);
+			 });
+}
+
 bool Hooks::empty() {
 	return events.empty();
 }
