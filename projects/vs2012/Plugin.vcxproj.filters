@@ -354,11 +354,14 @@
     <ClCompile Include="..\..\dwt\src\widgets\TableTree.cpp">
       <Filter>Source Files\dwt\widgets</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\SettingsDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\pluginsdk\DataAccess.cpp">
+      <Filter>Source Files\Plugin SDK</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\Plugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -787,6 +790,15 @@
     </ClInclude>
     <ClInclude Include="..\..\dwt\include\dwt\util\xCeptionSmartUtilities.h">
       <Filter>Header Files\dwt</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\SettingsDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\pluginsdk\DataAccess.h">
+      <Filter>Header Files\Plugin SDK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Plugin.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

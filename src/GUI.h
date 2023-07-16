@@ -19,19 +19,21 @@
 #ifndef PLUGINS_DEV_GUI_H
 #define PLUGINS_DEV_GUI_H
 
+//#include "ListFilter.h"
+
 #include <unordered_set>
 
 #include <boost/lockfree/queue.hpp>
 #include <boost/regex.hpp>
 
 #include <dwt/Application.h>
-#include <dwt/widgets/ColorDialog.h>
 
 using std::move;
 using std::string;
 using std::unordered_set;
 
 constexpr ProtocolType PROTOCOL_UDP = static_cast<ProtocolType>(3);
+//constexpr ProtocolType PROTOCOL_HTTP = static_cast<ProtocolType>(4);
 
 // objects associated to each list item as LPARAMs.
 struct Item {
@@ -45,6 +47,28 @@ struct Item {
 	tstring message;
 };
 
+struct ColumnInfo {
+	const char* name;
+	const int size;
+	const bool numerical;
+};
+
+enum {
+	COLUMN_FIRST,
+	COLUMN_TIMESTAMP = COLUMN_FIRST,
+	COLUMN_COUNT,
+	COLUMN_DIRECTION,
+	COLUMN_PROTOCOL,
+	COLUMN_IP,
+	COLUMN_PORT,
+	COLUMN_PEER,
+	COLUMN_MESSAGE,
+
+	COLUMN_LAST
+};
+
+enum { ALL, ADC, NMDC, DHT, UDP/*, HTTP */};
+
 class GUI
 {
 public:
@@ -57,6 +81,9 @@ public:
 
 	// Temp solution to try and keep FilterW from having entries of offline hubs/users
 	void cleanFilterW(string ip);
+	
+	static void redrawTable();
+	static void setColor(COLORREF text, COLORREF bg);
 
 	static bool unloading;
 
@@ -69,8 +96,7 @@ public:
 
 private:
 	void timer();
-	void initFilter();
-	void initFilter(tstring& opt);
+	void initFilter(tstring opt = tstring());
 	void copy();
 	void clear();
 	void remove();
@@ -79,7 +105,7 @@ private:
 	struct Message { bool hubOrUser; bool sending; string protocol; string ip; decltype(ConnectionData().port) port; string peer; string message; };
 	boost::lockfree::queue<Message*> messages;
 
-	uint16_t counter;
+	uint32_t counter;
 	bool scroll;
 	bool hubMessages;
 	bool userMessages;
@@ -90,9 +116,6 @@ private:
 
 	LRESULT handleCustomDraw(NMLVCUSTOMDRAW& data);
 	void openDoc();
-
-	dwt::ColorDialog colorDlg;
-	void colorDialog(COLORREF color, COLOR_FLAGS colorFlag);
 };
 
 #endif

@@ -18,9 +18,10 @@
 
 #include "stdafx.h"
 #include "GUI.h"
+#include "SettingsDlg.h"
 
 #include <pluginsdk/Config.h>
-#include <pluginsdk/Logger.h>
+#include <pluginsdk/Core.h>
 #include <pluginsdk/Util.h>
 
 #include <dwt/Clipboard.h>
@@ -32,6 +33,7 @@
 #include <dwt/widgets/ComboBox.h>
 #include <dwt/widgets/Grid.h>
 #include <dwt/widgets/GroupBox.h>
+#include <dwt/widgets/Label.h>
 #include <dwt/widgets/Menu.h>
 #include <dwt/widgets/MessageBox.h>
 #include <dwt/widgets/SaveDialog.h>
@@ -44,14 +46,13 @@
 
 #include <boost/boost/lexical_cast.hpp>
 
-#define noFilter _T("0 - No filtering")
+#define noFilter _T("::0 - No filtering")// ::0 ensures this will stay at the top of the list when IPv6 is used e.g ::1
 
 // dwt defines another tstring...
 typedef tstring _tstring;
 #define tstring _tstring
 
 using dcapi::Config;
-using dcapi::Logger;
 using dcapi::Util;
 
 using namespace dwt;
@@ -60,7 +61,35 @@ bool GUI::unloading = false;
 
 WindowPtr window;
 TablePtr table;
-ComboBoxPtr filterW;
+ComboBoxPtr filterW, filterP;
+//ListFilter filter;
+
+static const ColumnInfo cols[] = {
+	{ "Timestamp", 120, false },
+	{ "#", 50, true },
+	{ "Dir", 50, false },
+	{ "Protocol", 60, false },
+	{ "IP", 100, false },
+	{ "Port", 50, true },
+	{ "Peer info", 200, false },
+	{ "Message", 520, false }	
+};
+
+namespace {
+void makeColumns(dwt::TablePtr table_, const ColumnInfo* columnInfo, size_t columnCount) {
+	std::vector<dwt::Column> n(columnCount);
+	std::vector<int> o(columnCount);
+	
+	for(size_t i = 0; i < columnCount; ++i) {
+		n[i].header = Util::toT(columnInfo[i].name);
+		n[i].width = columnInfo[i].size;
+		n[i].alignment = columnInfo[i].numerical ? dwt::Column::RIGHT : dwt::Column::LEFT;
+		o[i] = i;
+	}
+
+	table_->setColumns(n);
+}
+} //unnamed namespace
 
 GUI::GUI() :
 	messages(1024),
@@ -87,9 +116,12 @@ void GUI::create() {
 
 	if(Config::getBoolConfig("FirstRun")) {
 		Config::setConfig("FirstRun", false);
-		//Debug - force the BgColor to White
-		//TODO FIXME check setConfig on load in Plugin.cpp
+		//Offload these settings from Plugin
 		Config::setConfig("BgColor", static_cast<int>(RGB(255, 255, 255)));
+		Config::setConfig("ADCColor", static_cast<int>(RGB(0, 0, 0)));
+		Config::setConfig("NMDCColor", static_cast<int>(RGB(0, 0, 0)));
+		Config::setConfig("UDPColor", static_cast<int>(RGB(0, 0, 0)));
+		Config::setConfig("TimeStampFormat", "[%D - %H:%M:%S]");
 	}
 
 	Config::setConfig("Dialog", true);
@@ -119,7 +151,7 @@ void GUI::create() {
 		window->onDestroy([this] { clear(); });
 	}
 
-	auto grid = window->addChild(Grid::Seed(3, 1));
+	auto grid = window->addChild(Grid::Seed(2, 1));
 	grid->column(0).mode = GridInfo::FILL;
 	grid->row(0).mode = GridInfo::FILL;
 	grid->row(0).align = GridInfo::STRETCH;
@@ -130,17 +162,7 @@ void GUI::create() {
 		seed.style |= WS_BORDER | LVS_SHOWSELALWAYS;
 		seed.lvStyle = LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP | LVS_EX_FULLROWSELECT | LVS_EX_LABELTIP;
 		table = grid->addChild(seed);
-
-		std::vector<Column> columns;
-		columns.emplace_back(_T("Timestamp"), 120);
-		columns.emplace_back(_T("#"), 50);
-		columns.emplace_back(_T("Dir"), 50);
-		columns.emplace_back(_T("Protocol"), 60);
-		columns.emplace_back(_T("IP"), 100);
-		columns.emplace_back(_T("Port"), 50);
-		columns.emplace_back(_T("Peer info"), 200);
-		columns.emplace_back(_T("Message"), 520);
-		table->setColumns(columns);
+		makeColumns(table, cols, COLUMN_LAST);
 		table->onSized([this](const SizedEvent& e) { table->setColumnWidth(8, e.size.x - 50 - 50 - 60 - 100 - 50 - 75 - 20); });
 
 		table->onContextMenu([this](const ScreenCoordinate& pt) -> bool {
@@ -154,8 +176,10 @@ void GUI::create() {
 			menu->appendSeparator();
 			menu->appendItem(_T("Open protocol documentation"), [=] { openDoc(); }, nullptr, hasSel);
 
+			menu->appendSeparator();
+			menu->appendItem(_T("Open settings"), [=] { SettingsDlg(window).run(); }, nullptr, true);
+
 			menu->open(pt.x() == -1 || pt.y() == -1 ? table->getContextMenuPos() : pt);
-			
 			return true;
 		});
 
@@ -163,34 +187,58 @@ void GUI::create() {
 	}
 
 	{
-		auto cur = grid->addChild(Grid::Seed(1, 5));
-		cur->setSpacing(30);
-
-		auto hubMessagesW = cur->addChild(CheckBox::Seed(_T("Add hub messages")));
-		hubMessagesW->setChecked(true);
-		hubMessagesW->onClicked([this, hubMessagesW] { hubMessages = hubMessagesW->getChecked(); });
-
-		auto userMessagesW = cur->addChild(CheckBox::Seed(_T("Add user messages")));
-		userMessagesW->setChecked(true);
-		userMessagesW->onClicked([this, userMessagesW] { userMessages = userMessagesW->getChecked(); });
+		auto label = grid->addChild(GroupBox::Seed(_T("Options")))->addChild(Grid::Seed(2, 1)); // 
+		auto cur = label->addChild(Grid::Seed(2, 2)); //2!!! Check this isn't the cause of the grid not alligning properly
+		cur->setSpacing(10);
 
 		{
-			ComboBox::Seed seed;
-			seed.style |= CBS_DROPDOWNLIST | CBS_SORT;
-			filterW = cur->addChild(seed);
-			initFilter();
-			filterW->onSelectionChanged([this] {
-				auto str = filterW->getText();
-				if(str == noFilter) {
-					filterSel.clear();
+			auto cur2 = cur->addChild(GroupBox::Seed(_T("Filtering options")))->addChild(Grid::Seed(1, 4));
+			cur2->column(0).size = 75;
+			cur2->column(2).size = 100;
+
+			Label::Seed ls;
+			ls.style |= SS_CENTER;
+
+			//Centered Label "Filter by IP" - col(0)
+			ls.caption = _T("Filter by IP");
+			cur2->addChild(ls);
+
+			{
+				ComboBox::Seed seed;
+				seed.style |= CBS_DROPDOWNLIST | CBS_SORT;
+				filterW = cur2->addChild(seed);
+				initFilter();
+				filterW->onSelectionChanged([this] {
+					auto str = filterW->getText();
+				if (str == noFilter) {
+				filterSel.clear();
 				} else {
 					filterSel = move(str);
 				}
-			});
+				});
+			}
+
+			//Centered Label "Filter by protocol" - col(2)
+			ls.caption = _T("Filter by protocol");
+			cur2->addChild(ls);
+
+			{
+				ComboBox::Seed seed;
+				seed.style |= CBS_DROPDOWNLIST;
+				filterP = cur2->addChild(seed);
+				filterP->addValue(Util::toT("Show all"));
+				filterP->addValue(Util::toT("ADC only"));
+				filterP->addValue(Util::toT("NMDC only"));
+				if(dcapi::Core::appName != "DC++") { //afaik ApexDC++ uses DHT for the time being this will be fine
+					filterP->addValue(Util::toT("DHT only")); //DC++ Not implemented
+				}
+				filterP->addValue(Util::toT("UDP only"));
+				filterP->setSelected(ALL);
+			}
 		}
 
 		{
-			auto cur2 = cur->addChild(GroupBox::Seed(_T("Regex filter")))->addChild(Grid::Seed(1, 2));
+			auto cur2 = cur->addChild(GroupBox::Seed(_T("Regex filter (only applies to messages)")))->addChild(Grid::Seed(1, 2));
 			cur2->column(0).size = 250;
 
 			TextBox::Seed seed;
@@ -201,83 +249,53 @@ void GUI::create() {
 			bs.padding.x += 8;
 			cur2->addChild(bs)->onClicked([this, box] {
 				regex = "";
-				try {
-					regex.assign(Util::fromT(box->getText()));
-				} catch(const std::runtime_error&) {
-					dwt::MessageBox(window).show(_T("Invalid regular expression"), window->getText(),
-						dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
-				}
+			try {
+				regex.assign(Util::fromT(box->getText()));
+			}catch (const std::runtime_error&) {
+				dwt::MessageBox(window).show(_T("Invalid regular expression"), window->getText(),
+											 dwt::MessageBox::BOX_OK, dwt::MessageBox::BOX_ICONEXCLAMATION);
+			}
 			});
 		}
 
 		{
-			auto cur2 = cur->addChild(GroupBox::Seed(_T("Log to a file")))->addChild(Grid::Seed(1, 2));
-			cur2->column(0).size = 250;
+			auto cur2 = label->addChild(Grid::Seed(1, 8)); //7
+			cur2->column(6).size = 250; // Set up spacing for the close button
+			cur2->column(7).align = GridInfo::BOTTOM_RIGHT;
+			cur2->setSpacing(20);
 
-			log = Config::getConfig("Log");
+			auto hubMessagesW = cur2->addChild(CheckBox::Seed(_T("Add hub messages")));
+			hubMessagesW->setChecked(true);
+			hubMessagesW->onClicked([this, hubMessagesW] { hubMessages = hubMessagesW->getChecked(); });
 
-			TextBox::Seed seed(Util::toT(log));
-			seed.style |= ES_AUTOHSCROLL;
-			auto box = cur2->addChild(seed);
-			box->onUpdated([this, box] { log = Util::fromT(box->getText()); Config::setConfig("Log", log); });
+			auto userMessagesW = cur2->addChild(CheckBox::Seed(_T("Add user messages")));
+			userMessagesW->setChecked(true);
+			userMessagesW->onClicked([this, userMessagesW] { userMessages = userMessagesW->getChecked(); });
 
-			Button::Seed bs(_T("Browse"));
-			bs.padding.x += 8;
-			cur2->addChild(bs)->onClicked([this, box] {
-				auto file = Util::toT(log);
-				if(SaveDialog(window).open(file)) {
-					log = Util::fromT(file);
-					Config::setConfig("Log", log);
-					box->setText(file);
-				}
-			});
+			auto scrollW = cur2->addChild(CheckBox::Seed(_T("Auto-scroll")));
+			scrollW->setChecked(true);
+			scrollW->onClicked([this, scrollW] { scroll = scrollW->getChecked(); });
+
+			auto onTop = cur2->addChild(CheckBox::Seed(_T("Keep this window on top")));
+			onTop->onClicked([onTop] { window->setZOrder(onTop->getChecked() ? HWND_TOPMOST : HWND_NOTOPMOST); });
+
+			Button::Seed bs;
+			bs.padding.x += 20;
+
+			bs.caption = _T("Clear the list");
+			cur2->addChild(bs)->onClicked([this] { clear(); });
+
+			bs.caption = _T("Open settings");
+			cur2->addChild(bs)->onClicked([this] { SettingsDlg(window).run(); });
+
+			bs.caption = _T("Close");
+			bs.style |= BS_DEFPUSHBUTTON;
+			bs.padding.x += 20;
+			Button* bp = cur2->addChild(bs);
+			bp->onClicked([] { window->close(true); });
+			cur2->setWidget(bp, 0, 7);
 		}
 	}
-
-	{
-		auto cur = grid->addChild(Grid::Seed(1, 6));
-		cur->column(4).mode = GridInfo::FILL;
-		cur->column(4).align = GridInfo::BOTTOM_RIGHT;
-		cur->setSpacing(20);
-
-		Button::Seed bs;
-		bs.padding.x += 20;
-
-		bs.caption = _T("Copy selected messages");
-		cur->addChild(bs)->onClicked([this] { copy(); });
-
-		auto scrollW = cur->addChild(CheckBox::Seed(_T("Auto-scroll")));
-		scrollW->setChecked(true);
-		scrollW->onClicked([this, scrollW] { scroll = scrollW->getChecked(); });
-
-		bs.caption = _T("Clear the list");
-		cur->addChild(bs)->onClicked([this] { clear(); });
-
-		auto onTop = cur->addChild(CheckBox::Seed(_T("Keep this window on top")));
-		onTop->onClicked([onTop] { window->setZOrder(onTop->getChecked() ? HWND_TOPMOST : HWND_NOTOPMOST); });
-
-		{
-			auto cur2 = cur->addChild(GroupBox::Seed(_T("Colors")))->addChild(Grid::Seed(1, 4));
-
-			bs.caption = _T("Background Color");
-			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("BgColor"), COLOR_BG); });
-
-			bs.caption = _T("UDP Color");
-			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("UDPColor"), COLOR_UDP); });
-
-			bs.caption = _T("NMDC Color");
-			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("NMDCColor"), COLOR_NMDC); });
-
-			bs.caption = _T("ADC Color");
-			cur2->addChild(bs)->onClicked([this] { colorDialog(Config::getIntConfig("ADCColor"), COLOR_ADC); });
-		}
-
-		bs.caption = _T("Close");
-		bs.style |= BS_DEFPUSHBUTTON;
-		bs.padding.x += 20;
-		cur->addChild(bs)->onClicked([] { window->close(true); });
-	}
-
 
 	grid->resize(window->getClientSize());
 	window->onSized([grid](const SizedEvent& e) { grid->resize(e.size); });
@@ -297,6 +315,7 @@ void GUI::write(bool hubOrUser, bool sending, ProtocolType proto, string ip, dec
 			case PROTOCOL_NMDC: return "NMDC"; break;
 			case PROTOCOL_DHT: return "DHT"; break; // Reserved
 			case PROTOCOL_UDP: return "UDP"; break; // use our own definition for UDP
+
 			default: return "Unknown";
 		}
 	};
@@ -339,6 +358,15 @@ void GUI::timer() {
 			continue;
 		}
 
+		auto pStr = filterP->getSelected();
+		if(pStr != ALL) {
+			if(pStr == ADC && message.protocol != "ADC") continue;
+			if(pStr == NMDC && message.protocol != "NMDC") continue;
+			if(pStr == DHT && message.protocol != "DHT") continue; //DC++ Not implemented
+			if(pStr == UDP && message.protocol != "UDP") continue;
+//			if(pStr == HTTP && message.protocol != "HTTP") continue;
+		}
+
 		if(!regex.empty()) {
 			try {
 				if(!boost::regex_search(message.message, regex)) {
@@ -350,9 +378,11 @@ void GUI::timer() {
 			}
 		}
 
+		const auto& timeFmt = Config::getConfig("TimeStampFormat");
+
 		char timestamp [50] {};
 		std::time_t time = std::time(nullptr);
-		std::strftime(timestamp, 30, "[%D - %H:%M:%S]", std::localtime(&time));
+		std::strftime(timestamp, 30, timeFmt.c_str(), std::localtime(&time));
 		auto timeStr = string(timestamp);
 
 		if(f) {
@@ -370,15 +400,16 @@ void GUI::timer() {
 		item->peer = Util::toT(message.peer);
 		item->message = Util::toT(message.message);
 
-		std::vector<tstring> row;
-		row.push_back(item->timestamp);
-		row.push_back(item->index);
-		row.push_back(item->dir);
-		row.push_back(item->protocol);
-		row.push_back(item->ip);
-		row.push_back(item->port);
-		row.push_back(item->peer);
-		row.push_back(item->message);
+		std::vector<tstring> row = { 
+			item->timestamp, 
+			item->index, 
+			item->dir, 
+			item->protocol, 
+			item->ip, 
+			item->port, 
+			item->peer, 
+			item->message 
+		};
 		pos = table->insert(row, reinterpret_cast<LPARAM>(item));
 
 		++counter;
@@ -397,13 +428,19 @@ void GUI::timer() {
 	}
 }
 
-void GUI::initFilter() {
-	filterW->setSelected(filterW->addValue(noFilter));
-}
-
-void GUI::initFilter(tstring& opt) {
+void GUI::initFilter(tstring opt) {
+	filter.clear();
+	filterSel.clear();
+	filterW->clear();
 	filterW->addValue(noFilter);
-	filterW->setSelected(filterW->addValue(opt));
+
+	if(opt.empty()) {
+		filterW->setSelected(0); // noFilter ***SHOULD*** always be 0
+	} else {
+		filter.insert(opt); //We need to re-add the selected IP
+		filterW->setSelected(filterW->addValue(opt));
+		filterSel = opt;
+	}
 }
 
 void GUI::copy() {
@@ -439,12 +476,8 @@ void GUI::clear() {
 		delete item;
 	}
 
-	auto temp = filterW->getText();
-	filterW->clear();
-	filter.clear();
-	filterSel.clear();
-
-	if (!temp.empty() && temp != noFilter) {
+	const auto& temp = filterW->getText();
+	if(!temp.empty() && temp != noFilter) {
 		initFilter(temp);
 		return;
 	}
@@ -465,33 +498,33 @@ void GUI::remove() {
 }
 
 void GUI::cleanFilterW(string ip) {
-	if (filter.find(Util::toT(ip)) != filter.end()) {
+	if(filter.find(Util::toT(ip)) != filter.end()) {
 		filterW->erase(filterW->findString(Util::toT(ip)));
 		initFilter();
 	}
 }
 
 LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
-	auto item = static_cast<int>(data.nmcd.dwItemSpec);
-	COLORREF adcClr = static_cast<COLORREF>(Config::getIntConfig("ADCColor"));
-	COLORREF nmdcClr = static_cast<COLORREF>(Config::getIntConfig("NMDCColor"));
-	COLORREF udpClr = static_cast<COLORREF>(Config::getIntConfig("UDPColor"));
+	const auto& item = static_cast<int>(data.nmcd.dwItemSpec);
+	const auto& adcClr = static_cast<COLORREF>(Config::getIntConfig("ADCColor"));
+	const auto& nmdcClr = static_cast<COLORREF>(Config::getIntConfig("NMDCColor"));
+	const auto& udpClr = static_cast<COLORREF>(Config::getIntConfig("UDPColor"));
 
-	if (data.nmcd.dwDrawStage == CDDS_PREPAINT) {
+	if(data.nmcd.dwDrawStage == CDDS_PREPAINT) {
 		return CDRF_NOTIFYITEMDRAW;
 	}
 
-	if ((data.nmcd.dwDrawStage & CDDS_ITEMPREPAINT) == CDDS_ITEMPREPAINT && data.dwItemType == LVCDI_ITEM && data.nmcd.lItemlParam) {
+	if((data.nmcd.dwDrawStage & CDDS_ITEMPREPAINT) == CDDS_ITEMPREPAINT && data.dwItemType == LVCDI_ITEM && data.nmcd.lItemlParam) {
 
-		auto rect = table->getRect(item, LVIR_BOUNDS);
+		const auto& rect = table->getRect(item, LVIR_BOUNDS);
 
 		Item* it = (Item*)data.nmcd.lItemlParam;
-		if (data.nmcd.hdr.hwndFrom == table->handle()) {
-			if (it->protocol == _T("ADC")) {
+		if(data.nmcd.hdr.hwndFrom == table->handle()) {
+			if(it->protocol == _T("ADC")) {
 				data.clrText = adcClr;
-			} else if (it->protocol == _T("NMDC")) {
+			} else if(it->protocol == _T("NMDC")) {
 				data.clrText = nmdcClr;
-			} else if (it->protocol == _T("UDP")) {
+			} else if(it->protocol == _T("UDP")) {
 				data.clrText = udpClr;
 			}
 		}
@@ -501,25 +534,25 @@ LRESULT GUI::handleCustomDraw(NMLVCUSTOMDRAW& data) {
 }
 
 void GUI::openDoc() {
+	const tstring& ADC_Doc = _T("https://adc.sourceforge.net/ADC.html");
+	const tstring& NMDC_Doc = _T("https://nmdc.sourceforge.net/NMDC.html");
+	const tstring& UDP_Doc = _T("https://en.wikipedia.org/wiki/User_Datagram_Protocol");
+
 	int i = -1;
-	while ((i = table->getNext(i, LVNI_SELECTED)) != -1) {
+	while((i = table->getNext(i, LVNI_SELECTED)) != -1) {
 		auto data = table->getData(i);
-		if (data) {
-			const string& ADC_Doc = "http://adc.sourceforge.net/ADC.html";
-			const string& NMDC_Doc = "http://nmdc.sourceforge.net/NMDC.html";
-			const string& UDP_Doc = "https://en.wikipedia.org/wiki/User_Datagram_Protocol";
+		if(data) {
+			const auto& item = *reinterpret_cast<Item*>(data);
+			const auto isAdc = item.protocol == Util::toT("ADC");
+			const auto isNmdc = item.protocol == Util::toT("NMDC");
 
-			auto& item = *reinterpret_cast<Item*>(data);
-			auto isAdc = item.protocol == Util::toT("ADC");
-			auto isNmdc = item.protocol == Util::toT("NMDC");
-
-			auto openLink = [](const string& doc) {
-				::ShellExecute(0, 0, Util::toT(doc).c_str(), 0, 0, SW_SHOW);
+			auto openLink = [](const tstring& doc) {
+				::ShellExecute(0, 0, doc.c_str(), 0, 0, SW_SHOW);
 			};
 
-			if (isAdc) {
+			if(isAdc) {
 				openLink(ADC_Doc);
-			} else if (isNmdc) {
+			} else if(isNmdc) {
 				openLink(NMDC_Doc);
 			} else {
 				openLink(UDP_Doc);
@@ -530,23 +563,10 @@ void GUI::openDoc() {
 	}
 }
 
-void GUI::colorDialog(COLORREF color, COLOR_FLAGS colorFlag) {
-	ColorDialog::ColorParams params(color);
-	if(ColorDialog(window).open(params)) {
-		switch (colorFlag) {
-			case COLOR_ADC:
-				Config::setConfig("ADCColor", static_cast<int>(params.getColor()));
-				break;
-			case COLOR_NMDC:
-				Config::setConfig("NMDCColor", static_cast<int>(params.getColor()));
-				break;
-			case COLOR_UDP:
-				Config::setConfig("UDPColor", static_cast<int>(params.getColor()));
-				break;
-			case COLOR_BG:
-				Config::setConfig("BgColor", static_cast<int>(params.getColor()));
-				table->setColor(RGB(0, 0, 0), params.getColor());
-		}
-	}
-	table->Control::redraw(true); // Let's make sure we redraw the table
+void GUI::redrawTable() {
+	table->Control::redraw(true);
+}
+
+void GUI::setColor(COLORREF text, COLORREF bg) {
+	table->setColor(text, bg);
 }

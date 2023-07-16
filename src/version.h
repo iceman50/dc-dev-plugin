@@ -34,7 +34,7 @@
 #define PLUGIN_DESC "Plugin for developers: network traffic analysis, ability to send custom commands."
 
 /* Version of the plugin (note: not API version) */
-#define PLUGIN_VERSION 1.1
+#define PLUGIN_VERSION 1.20
 
 /* Plugin website, set to "N/A" if none */
 #define PLUGIN_WEB "http://dcplusplus.sourceforge.net/"

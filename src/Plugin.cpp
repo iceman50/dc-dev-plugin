@@ -96,10 +96,6 @@ bool Plugin::onLoad(DCCorePtr core, bool install, bool runtime) {
 		// This only executes when the plugin has been installed for the first time.
 		Config::setConfig("Dialog", true);
 		Config::setConfig("FirstRun", true);
-		Config::setConfig("BgColor", static_cast<int>(RGB(255, 255, 255)));
-		Config::setConfig("ADCColor", static_cast<int>(RGB(0, 0, 0)));
-		Config::setConfig("NMDCColor", static_cast<int>(RGB(0, 0, 0)));
-		Config::setConfig("UDPColor", static_cast<int>(RGB(0, 0, 0)));
 
 		Logger::log("The dev plugin has been installed; check the plugins menu and the /raw chat command.");
 	}
