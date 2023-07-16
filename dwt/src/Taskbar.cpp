@@ -221,6 +221,10 @@ void Taskbar::setTaskbarIcon(ContainerPtr tab, const IconPtr& icon) {
 	tabs[tab]->setSmallIcon(icon);
 }
 
+void Taskbar::setOverlayIcon(ContainerPtr tab, const IconPtr& icon, const tstring& description) {
+	taskbar->SetOverlayIcon(tabs[tab]->handle(), *icon, description.c_str());
+}
+
 BitmapPtr Taskbar::getBitmap(ContainerPtr tab, LPARAM thumbnailSize) {
 	UpdateCanvas canvas { tab };
 

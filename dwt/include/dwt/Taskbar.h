@@ -45,6 +45,8 @@ class Taskbar {
 public:
 	void initTaskbar(WindowPtr window_);
 
+	void setOverlayIcon(ContainerPtr tab, const IconPtr& icon, const tstring& description);
+
 protected:
 	Taskbar();
 	virtual ~Taskbar();
