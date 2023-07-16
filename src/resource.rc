@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "Comments", "http://dcplusplus.sourceforge.net"
             VALUE "FileDescription", "Dev plugin for DC++"
-            VALUE "FileVersion", "1.2.0.0"
+            VALUE "FileVersion", "1,2,0,0"
             VALUE "InternalName", "DevPlugin"
             VALUE "LegalCopyright", "Copyright (C) 2012-2023 Jacek Sieka"
             VALUE "OriginalFilename", "DevPlugin.dll"
             VALUE "ProductName", "Dev plugin for DC++"
-            VALUE "ProductVersion", "1.2.0.0"
+            VALUE "ProductVersion", "1,2,0,0"
         END
     END
     BLOCK "VarFileInfo"

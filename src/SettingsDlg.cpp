@@ -133,7 +133,7 @@ bool SettingsDlg::handleInitDialog() {
 	}
 
 	{ //OK & Cancel need to be our last row
-		auto cur = grid->addChild(Grid::Seed(1, 1));//2
+		auto cur = grid->addChild(Grid::Seed(1, 1));
 		cur->column(0).mode = GridInfo::FILL;
 		cur->column(0).align = GridInfo::BOTTOM_RIGHT;
 		cur->setSpacing(grid->getSpacing());
@@ -142,11 +142,6 @@ bool SettingsDlg::handleInitDialog() {
 		bs.style |= BS_DEFPUSHBUTTON;
 		bs.padding.x = 20;
 		cur->addChild(bs)->onClicked([this] { ok(); });
- 
-//		bs.caption = _T("Cancel");
-//		bs.style &= ~BS_DEFPUSHBUTTON;
-//		bs.padding.x = 10;
-//		cur->addChild(bs)->onClicked([this] { endDialog(IDCANCEL); });
 	}
 
 	setText(_T("Dev plugin settings"));

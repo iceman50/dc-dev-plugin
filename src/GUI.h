@@ -67,7 +67,7 @@ enum {
 	COLUMN_LAST
 };
 
-enum { ALL, ADC, NMDC, DHT, UDP/*, HTTP */};
+enum { ALL, ADC, NMDC, DHT, UDP };
 
 class GUI
 {

@@ -125,6 +125,9 @@ void GUI::create() {
 	}
 
 	Config::setConfig("Dialog", true);
+	if(Config::getConfig("TimeStampFormat").empty()) { // Updating to 1.2 plugins will not have this saved
+		Config::setConfig("TimeStampFormat", "[%D - %H:%M:%S]");
+	}
 
 	Application::init();
 
@@ -259,7 +262,7 @@ void GUI::create() {
 		}
 
 		{
-			auto cur2 = label->addChild(Grid::Seed(1, 8)); //7
+			auto cur2 = label->addChild(Grid::Seed(1, 8));
 			cur2->column(6).size = 250; // Set up spacing for the close button
 			cur2->column(7).align = GridInfo::BOTTOM_RIGHT;
 			cur2->setSpacing(20);
@@ -315,7 +318,6 @@ void GUI::write(bool hubOrUser, bool sending, ProtocolType proto, string ip, dec
 			case PROTOCOL_NMDC: return "NMDC"; break;
 			case PROTOCOL_DHT: return "DHT"; break; // Reserved
 			case PROTOCOL_UDP: return "UDP"; break; // use our own definition for UDP
-
 			default: return "Unknown";
 		}
 	};
@@ -364,7 +366,6 @@ void GUI::timer() {
 			if(pStr == NMDC && message.protocol != "NMDC") continue;
 			if(pStr == DHT && message.protocol != "DHT") continue; //DC++ Not implemented
 			if(pStr == UDP && message.protocol != "UDP") continue;
-//			if(pStr == HTTP && message.protocol != "HTTP") continue;
 		}
 
 		if(!regex.empty()) {
