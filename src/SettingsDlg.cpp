@@ -63,7 +63,7 @@ int SettingsDlg::run() {
 }
 
 bool SettingsDlg::handleInitDialog() {
-	grid = addChild(Grid::Seed(2/*12*/, 1)); // 12 rows
+	grid = addChild(Grid::Seed(2, 1));
 	grid->column(0).mode = GridInfo::FILL;
 	grid->setSpacing(6);
 

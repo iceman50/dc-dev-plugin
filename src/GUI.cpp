@@ -191,7 +191,7 @@ void GUI::create() {
 
 	{
 		auto label = grid->addChild(GroupBox::Seed(_T("Options")))->addChild(Grid::Seed(2, 1)); // 
-		auto cur = label->addChild(Grid::Seed(2, 2)); //2!!! Check this isn't the cause of the grid not alligning properly
+		auto cur = label->addChild(Grid::Seed(2, 2));
 		cur->setSpacing(10);
 
 		{
